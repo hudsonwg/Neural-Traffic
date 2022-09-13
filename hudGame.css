@@ -1,0 +1,133 @@
+#button1{
+    background-color: rgb(216, 216, 216);
+    color: black;
+    border: 4px solid #151615;
+    position: absolute;
+    top : 40px;
+    right : 100px;
+}
+canvas {
+    background: #cdcdcd;
+}​
+#button2{
+    background-color: rgb(216, 216, 216);
+    color: black;
+    border: 4px solid #151615;
+    position: absolute;
+    top : 70px;
+    right : 100px;
+}
+.title{
+    position: fixed;
+    top: 7%;
+    left: 25%;
+    transform: translate(-50%, -50%);
+    display: block;
+    width: 800px;
+    height: 80px;
+    line-height: 40px;
+    font-size: 30px;
+    font-family: sans-serif;
+    color: #333;
+    font-weight: 700;
+}
+.title2{
+    position: fixed;
+    top: 11%;
+    left: 25%;
+    transform: translate(-50%, -50%);
+    display: block;
+    width: 800px;
+    height: 80px;
+    line-height: 25px;
+    font-size: 25px;
+    font-style: italic;
+    font-family: sans-serif;
+    color: #333;
+    font-weight: 700;
+}
+.instructions{
+    position: fixed;
+    top: 45%;
+    left: 31%;
+    transform: translate(-50%, -50%);
+    display: block;
+    width: 800px;
+    height: 80px;
+    line-height: 25px;
+    font-size: 30px;
+    font-style: italic;
+    font-family: sans-serif;
+    color: #333;
+    font-weight: 700;
+    animation: bounce;
+    animation-timing-function: linear;
+    animation-duration: 5s;
+    animation-iteration-count: infinite;
+}
+.wrapper{
+  position: fixed;
+  top: 7%;
+  left: 90%;
+  transform: translate(-50%, -50%);
+}
+.wrapper2{
+    position: fixed;
+    top: 12%;
+    left: 90%;
+    transform: translate(-50%, -50%);
+  }
+.wrapper3{
+    position: fixed;
+    top: 17%;
+    left: 90%;
+    transform: translate(-50%, -50%);
+  }
+#speedText{
+    position: fixed;
+    top: 15%;
+    left: 83%;
+    font-size: 25px;
+    transform: translate(-50%, -50%);
+}
+a{
+  display: block;
+  width: 200px;
+  height: 40px;
+  line-height: 40px;
+  font-size: 18px;
+  font-family: sans-serif;
+  text-decoration: none;
+  color: #333;
+  border: 2px solid #333;
+  letter-spacing: 2px;
+  text-align: center;
+  position: relative;
+  transition: all .35s;
+}
+a span{
+  position: relative;
+  z-index: 2;
+}
+a:after{
+  position: absolute;
+  content: "";
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background: #ff003b;
+  transition: all .35s;
+}
+a:hover{
+  color: #fff;
+}
+a:hover:after{
+  width: 100%;
+}
+@keyframes bounce {
+    0%{transform: translate(0, 0); opacity: 0.9;}
+    50%{transform: translate(0, 10vh); opacity: 0.5;}
+    100%{transform: translate(0, 0);opacity: 0.9;}
+}
+

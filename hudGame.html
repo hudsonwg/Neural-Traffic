@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="hudGame.css">
+</head>
+
+<style>
+    body{
+        margin: 0;
+    }
+</style>
+<canvas></canvas>
+<div class="instructions" id="instructions">
+    CLICK AND DRAG TO BUILD SOME ROADS!
+</div>
+<div class = "title">
+    NEURAL REINFORCEMENT TRAFFIC SIMULATOR
+</div>
+<div class = "title2">
+    by Hudson Goddard
+</div>
+
+<div class="wrapper" onclick="clearMap()">
+    <a href="#"><span>CLEAR MAP</span></a>
+</div>
+<div class="wrapper2" onclick="toggleCarsMoving()" >
+    <a href="#"><span>START/STOP</span></a>
+</div>
+<div class="wrapper3" onclick="toggleUniversalSpeed()">
+    <a href="#"><span>TOGGLE SPEED</span></a>
+</div>
+<p id="speedText">1x</p>
+
+
+<script src="./hudGame.js"></script>
