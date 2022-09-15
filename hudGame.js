@@ -33,6 +33,17 @@ universalCarVelocity = 20 //METERS PER SECOND OR WHATEVER
 //FUNCTIONS UNDER CONSTRUCTION
 function randomizeLightTiming(){
     //ASSIGNS ALL LIGHTS IN LIGHT ARRAY RANDOM TIMING FUNCTION
+    console.log("RANDOM BAM")
+    if(LIGHT_ARRAY.length > 0){
+        for(let i = 0; i<LIGHT_ARRAY.length; i++){
+            randomSeed = Math.random(100)
+            if(randomSeed == 0){
+                randomSeed = 1
+            }
+            newTime = (1/randomSeed)
+            LIGHT_ARRAY[i].timeGreen = newTime
+        }
+    }
 }
 function findBestLightTimes(){
     //RETURNS ARRAY OF LIGHT TIMES CORRESPONDING WITH CURRENT LIGHT ARRAY
