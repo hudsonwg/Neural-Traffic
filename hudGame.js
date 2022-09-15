@@ -1,23 +1,52 @@
+//CANVAS VARIABLES
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
 canvas.width = innerWidth
 canvas.height = innerHeight
 const STOPLIGHTCYCLETIME = 500
+
+//SIMULATION STATES/MODES
 ROADPLACEMODE = true
-var ROAD_ARRAY = []
+MOUSEDOWN = false
+building = false
+var gameRunning = false
+carsMoving = false
+
+//ARRAYS FOR SYSTEM
+ROAD_ARRAY = []
 LIGHT_ARRAY = []
 CAR_ARRAY = []
-MOUSEDOWN = false
+
+//MOUSE POSITION INITS
 initialMouseX = 0
 initialMouseY = 0
 mouseX = 0
 mouseY = 0
-building = false
+
+//CONSTANT INITS
+var instructionDiv = document.getElementsByClassName("instructions")[0];
 universalSpeedMultiplier = 1
 universalSpeedText = "1x"
-var gameRunning = false
-carsMoving = false
-var instructionDiv = document.getElementsByClassName("instructions")[0];
+lightCycle = 300
+
+//FUNCTIONS UNDER CONSTRUCTION
+function findBestLightTimes(){
+    //RETURNS ARRAY OF LIGHT TIMES CORRESPONDING WITH CURRENT LIGHT ARRAY
+}
+function getCurrentModelScore(interval){
+    //RETURNS AMOUNT OF CARS THAT CAN PASS THROUGH THE CURRENT SYSTEM IN A GIVEN TIME
+    roads = ROAD_ARRAY
+    cars = CAR_ARRAY
+    lights = LIGHT_ARRAY
+    for(let i = 0; i<roads.length(); i++){
+        //CALCULATE AMOUNT OF CARS THAT PASS THROUGH EACH ROAD ON TIME INTERVAL
+    }
+}
+function getCarSpawnFrequency(road){
+    //RETURNS CAR SPAWN FREQUENCY COEFFICIENT BASED ON ROAD LENGTH FOR CAR SPAWNING FUNCTION IN ROAD CLASS
+}
+
+//HELPER FUNCTIONS
 function intersects(a,b,c,d,p,q,r,s) {
     //GENIUS LITTLE ALGO FROM LAMBDA DETERM.
     var det, gamma, lambda;
@@ -33,13 +62,23 @@ function intersects(a,b,c,d,p,q,r,s) {
 function toggleUniversalSpeed(){
     if(universalSpeedMultiplier == 1){
         universalSpeedMultiplier = 5
+        lightCycle = 150
         universalSpeedText = "5x"
         document.getElementById("speedText").innerHTML = universalSpeedText;
     }
     else{
         universalSpeedMultiplier = 1
+        lightCycle = 300
         universalSpeedText = "1x"
         document.getElementById("speedText").innerHTML = universalSpeedText;
+    }
+}
+function toggleCarsMoving(){
+    if(carsMoving == false){
+        carsMoving = true
+    }
+    else{
+        carsMoving = false
     }
 }
 function line_intersect(x1, y1, x2, y2, x3, y3, x4, y4)
@@ -57,6 +96,84 @@ function line_intersect(x1, y1, x2, y2, x3, y3, x4, y4)
         seg2: ub >= 0 && ub <= 1
     };
 }
+function manageLineDrawing(){
+    if(MOUSEDOWN == true){
+        building = true
+        c.beginPath();
+        c.moveTo(initialMouseX, initialMouseY);
+        c.lineWidth = 15;
+        c.lineCap = 'square';
+        c.lineTo(mouseX, mouseY);
+        c.strokeStyle = "blue"
+        c.globalAlpha = 0.3
+        c.stroke();
+        c.globalAlpha = 1
+    }
+    if(MOUSEDOWN == false && building == true){
+        if(ROAD_ARRAY.length > 0){
+            for(let i = 0; i<ROAD_ARRAY.length; i++){
+                if(intersects(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY) == true){
+                    console.log("intersection detected")
+                    console.log(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['x'])
+                    console.log(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['y'])
+                    LIGHT_ARRAY.push(new Light(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['x'], line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['y'], 'red', 15, 0.5))
+                }
+            }
+        }
+        ROAD_ARRAY.push(new Road(initialMouseX, initialMouseY, mouseX, mouseY, 15, "blue", false))
+        building = false
+    }
+    //when you push to the array, check for intersections with other roads. IF ANY INTERSECTIONS FOUND CREATE STOPLIGHT NODE
+}
+function clearMap(){
+    while(ROAD_ARRAY.length > 0){
+        ROAD_ARRAY.pop()
+    }
+    while(LIGHT_ARRAY.length > 0){
+        LIGHT_ARRAY.pop()
+    }
+}
+function update(){
+    c.clearRect(0, 0, canvas.width, canvas.height)
+    manageLineDrawing()
+    for(let i = 0; i<ROAD_ARRAY.length; i++){
+        ROAD_ARRAY[i].draw()
+    }
+    if(carsMoving == true){
+        for(let i = 0; i<ROAD_ARRAY.length; i++){
+            console.log("ruinning")
+            ROAD_ARRAY[i].updateCars()
+        }
+    }
+    for(let i = 0; i<LIGHT_ARRAY.length; i++){
+        LIGHT_ARRAY[i].animate()
+    }
+    
+    if(gameRunning == false && MOUSEDOWN == true){
+        gameRunning = true
+        console.log("helo")
+        instructionDiv.style.display = "none";
+    }
+
+    requestAnimationFrame(update)
+}
+
+//EVENT LISTENERS
+canvas.addEventListener("mouseup", e => {
+    MOUSEDOWN = false
+})
+canvas.addEventListener("mousedown", e => {
+    //clicklistener for creating roads
+    MOUSEDOWN = true
+    initialMouseX = e.x
+    initialMouseY = e.y
+})
+canvas.addEventListener("mousemove", function(e){
+    mouseX = e.x
+    mouseY = e.y
+})
+
+//CLASS DEFINITIONS
 class Road{
     constructor(startX, startY, endX, endY,width, color, placed){
         this.carFreq = 2
@@ -131,10 +248,10 @@ class Light{
         c.fill()
     }
     animate(){
-        if(this.tick == this.timeGreen){
+        if(Math.abs(this.tick - this.timeGreen*lightCycle)<20){
             this.color = 'red'
         }
-        if(this.tick == STOPLIGHTCYCLETIME){
+        if(Math.abs(this.tick - lightCycle) < 20){
             this.color = 'green'
             this.tick = 0
         }
@@ -159,7 +276,7 @@ class Car{
         c.moveTo(this.x, this.y);
         c.lineWidth = this.width;
         c.lineCap = 'square';
-        c.lineTo(((this.slope[0]/(this.slope[0]+this.slope[1]))*5)*2+this.x, ((this.slope[1]/(this.slope[0]+this.slope[1]))*5)*2+this.y);
+        c.lineTo(this.slope[0]/Math.sqrt((this.slope[0]*this.slope[0])+(this.slope[1]*this.slope[1]))*10+this.x, this.slope[1]/Math.sqrt((this.slope[0]*this.slope[0])+(this.slope[1]*this.slope[1]))*10+this.y);
         c.strokeStyle = this.color
         c.globalAlpha = 0.6
         c.stroke();
@@ -182,19 +299,8 @@ class Car{
                 console.log("origin")
             }
             else{
-                let normalC = [1, 1]
-                let newX = this.slope[0]
-                let newY = this.slope[1]
-                if(newX < 0){
-                    normalC[0] = -1
-                    newX = newX * (-1)
-                }
-                if(newY < 0){
-                    normalC[1] = -1
-                    newY = newY * (-1)
-                }
-                let normalizedX = normalC[0]*((newX/(newX+newY))*5)
-                let normalizedY = normalC[1]*((newY/(newX+newY))*5)
+                let normalizedX = this.slope[0]/Math.sqrt((this.slope[0]*this.slope[0])+(this.slope[1]*this.slope[1]))*3
+                let normalizedY = this.slope[1]/Math.sqrt((this.slope[0]*this.slope[0])+(this.slope[1]*this.slope[1]))*3
 
                 this.x += this.velocity*(normalizedX)*universalSpeedMultiplier
                 this.y += this.velocity*(normalizedY)*universalSpeedMultiplier
@@ -202,105 +308,20 @@ class Car{
                 
                 //THIS BIT NEEDS REVISION
                 
-        
+                console.log(this.slope[1])
+                console.log(this.slope[0])
                 console.log(normalizedY)
                 console.log(normalizedX)
-                console.log(normalC)
             }
         }
         this.draw()
     }
 }
-function manageLineDrawing(){
-    if(MOUSEDOWN == true){
-        building = true
-        c.beginPath();
-        c.moveTo(initialMouseX, initialMouseY);
-        c.lineWidth = 15;
-        c.lineCap = 'square';
-        c.lineTo(mouseX, mouseY);
-        c.strokeStyle = "blue"
-        c.globalAlpha = 0.3
-        c.stroke();
-        c.globalAlpha = 1
-    }
-    if(MOUSEDOWN == false && building == true){
-        if(ROAD_ARRAY.length > 0){
-            for(let i = 0; i<ROAD_ARRAY.length; i++){
-                if(intersects(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY) == true){
-                    console.log("intersection detected")
-                    console.log(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['x'])
-                    console.log(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['y'])
-                    LIGHT_ARRAY.push(new Light(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['x'], line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['y'], 'red', 15, 300))
-                }
-            }
-        }
-        ROAD_ARRAY.push(new Road(initialMouseX, initialMouseY, mouseX, mouseY, 15, "blue", false))
-        building = false
-    }
-    //when you push to the array, check for intersections with other roads. IF ANY INTERSECTIONS FOUND CREATE STOPLIGHT NODE
-}
-function toggleCarsMoving(){
-    if(carsMoving == false){
-        carsMoving = true
-    }
-    else{
-        carsMoving = false
-    }
-}
-function update(){
-    c.clearRect(0, 0, canvas.width, canvas.height)
-    manageLineDrawing()
-    for(let i = 0; i<ROAD_ARRAY.length; i++){
-        ROAD_ARRAY[i].draw()
-    }
-    if(carsMoving == true){
-        for(let i = 0; i<ROAD_ARRAY.length; i++){
-            console.log("ruinning")
-            ROAD_ARRAY[i].updateCars()
-        }
-    }
-    for(let i = 0; i<LIGHT_ARRAY.length; i++){
-        LIGHT_ARRAY[i].animate()
-    }
-    
-    if(gameRunning == false && MOUSEDOWN == true){
-        gameRunning = true
-        console.log("helo")
-        instructionDiv.style.display = "none";
-    }
 
-    requestAnimationFrame(update)
-}
-
-//const someRoad = new Road(100, 100, 300, 400, 15, 'blue')
-//const someCar = new Car(100, 100, 'purple', [2, 3], 20, someRoad, true)
-//const someLight = new Light(300, 400, 'green', 12, 300)
+//MAIN RUN CODE
 update()
 
 
-function clearMap(){
-    while(ROAD_ARRAY.length > 0){
-        ROAD_ARRAY.pop()
-    }
-    while(LIGHT_ARRAY.length > 0){
-        LIGHT_ARRAY.pop()
-    }
-}
 
 
-canvas.addEventListener("mouseup", e => {
-    MOUSEDOWN = false
-})
-canvas.addEventListener("mousedown", e => {
-    //clicklistener for creating roads
-    MOUSEDOWN = true
-    initialMouseX = e.x
-    initialMouseY = e.y
-})
-canvas.addEventListener("mousemove", function(e){
-    mouseX = e.x
-    mouseY = e.y
-})
 
-//console.log(c)
