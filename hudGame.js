@@ -28,25 +28,51 @@ var instructionDiv = document.getElementsByClassName("instructions")[0];
 universalSpeedMultiplier = 1
 universalSpeedText = "1x"
 lightCycle = 300
+universalCarVelocity = 20 //METERS PER SECOND OR WHATEVER
 
 //FUNCTIONS UNDER CONSTRUCTION
+function randomizeLightTiming(){
+    //ASSIGNS ALL LIGHTS IN LIGHT ARRAY RANDOM TIMING FUNCTION
+}
 function findBestLightTimes(){
     //RETURNS ARRAY OF LIGHT TIMES CORRESPONDING WITH CURRENT LIGHT ARRAY
 }
 function getCurrentModelScore(interval){
     //RETURNS AMOUNT OF CARS THAT CAN PASS THROUGH THE CURRENT SYSTEM IN A GIVEN TIME
-    roads = ROAD_ARRAY
-    cars = CAR_ARRAY
-    lights = LIGHT_ARRAY
-    for(let i = 0; i<roads.length(); i++){
-        //CALCULATE AMOUNT OF CARS THAT PASS THROUGH EACH ROAD ON TIME INTERVAL
+    currentModelScore = 1
+    for(let j = 0; j<LIGHT_ARRAY.length; j++){
+        LIGHT_ARRAY[j].determineRoads()
     }
+    for(let i = 0; i<ROAD_ARRAY.length; i++){
+        //CALCULATE AMOUNT OF CARS THAT PASS THROUGH EACH ROAD ON TIME INTERVAL
+        totalStoppedInterval = 0
+        for(let z = 0; z<LIGHT_ARRAY.length; z++){
+            if(LIGHT_ARRAY[z].redRoad == ROAD_ARRAY[i]){
+                totalStoppedInterval += (lightCycle - (LIGHT_ARRAY[z].timeGreen*lightCycle))
+            }
+            else if(LIGHT_ARRAY[z].greenRoad == ROAD_ARRAY[i]){
+                totalStoppedInterval += (LIGHT_ARRAY[z].timeGreen*lightCycle)
+            }
+            roadLength = getDistance(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY)
+            timeTakenByCar = roadLength/universalCarVelocity+totalStoppedInterval
+            currentModelScore += (interval/timeTakenByCar)
+            console.log("CURRENTMODELSCORE:")
+            console.log(currentModelScore)
+        }
+    }
+    return currentModelScore
 }
 function getCarSpawnFrequency(road){
     //RETURNS CAR SPAWN FREQUENCY COEFFICIENT BASED ON ROAD LENGTH FOR CAR SPAWNING FUNCTION IN ROAD CLASS
 }
 
 //HELPER FUNCTIONS
+function getDistance(x1, y1, x2, y2){
+    let y = x2 - x1;
+    let x = y2 - y1;
+    
+    return Math.sqrt(x * x + y * y);
+}
 function intersects(a,b,c,d,p,q,r,s) {
     //GENIUS LITTLE ALGO FROM LAMBDA DETERM.
     var det, gamma, lambda;
@@ -154,7 +180,8 @@ function update(){
         console.log("helo")
         instructionDiv.style.display = "none";
     }
-
+    //LOGS CURRENT MODEL SCORE
+    getCurrentModelScore(50)
     requestAnimationFrame(update)
 }
 
@@ -229,9 +256,27 @@ class Light{
         this.y = y
         this.color = color
         this.radius = radius
+        this.greenRoad = null
+        this.redRoad = null
         this.timeGreen = timeGreen
         this.timeRed = STOPLIGHTCYCLETIME - this.timeGreen
         this.tick = 0
+    }
+    determineRoads(){
+        for(let i = 0; i<ROAD_ARRAY.length; i++){
+            //DETERMINE WHICH TWO ROADS THIS LIGHT LIES ON AND PASS THEM RANDOMLY TO THE GREENROAD AND REDROAD CONTAINERS
+            if(Math.abs((getDistance(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, this.x, this.y)+getDistance(this.x, this.y, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY))-(getDistance(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY)))<=20){
+                if(this.greenRoad == null){
+                    this.greenRoad = ROAD_ARRAY[i]
+                }
+                else if(this.redRoad == null){
+                    this.redRoad = ROAD_ARRAY[i]
+                }
+                else{
+                    console.log("BOTH ROAD SLOTS FULL : REVISE ABSOLUTE VALUE DOMAIN IN CONDITION")
+                }
+            }
+        }
     }
     setTimeGreen(time){
         this.timeGreen = time
@@ -319,6 +364,7 @@ class Car{
 }
 
 //MAIN RUN CODE
+
 update()
 
 
