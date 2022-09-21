@@ -11,11 +11,16 @@ MOUSEDOWN = false
 building = false
 var gameRunning = false
 carsMoving = false
+netRunning = false
+chartExists = false
 
+//GRAPH VARIABLES
+GRAPHVALUES = []
 //ARRAYS FOR SYSTEM
 ROAD_ARRAY = []
 LIGHT_ARRAY = []
 CAR_ARRAY = []
+currentChart = null
 
 //MOUSE POSITION INITS
 initialMouseX = 0
@@ -29,6 +34,8 @@ universalSpeedMultiplier = 1
 universalSpeedText = "1x"
 lightCycle = 300
 universalCarVelocity = 20 //METERS PER SECOND OR WHATEVER
+currentCarScore = 0
+
 
 //FUNCTIONS UNDER CONSTRUCTION
 function randomizeLightTiming(){
@@ -49,6 +56,7 @@ function findBestLightTimes(){
     //RETURNS ARRAY OF LIGHT TIMES CORRESPONDING WITH CURRENT LIGHT ARRAY
 }
 function getCurrentModelScore(interval){
+    
     //RETURNS AMOUNT OF CARS THAT CAN PASS THROUGH THE CURRENT SYSTEM IN A GIVEN TIME
     currentModelScore = 1
     for(let j = 0; j<LIGHT_ARRAY.length; j++){
@@ -71,10 +79,74 @@ function getCurrentModelScore(interval){
             console.log(currentModelScore)
         }
     }
+    //CLAUSE THAT DIVIDES MODEL SCORE BY LENGTH TO MAKE METRIC MORE STANDARDIZED
+    //currentModelScore = currentModelScore/ROAD_ARRAY.length
+    if(GRAPHVALUES[GRAPHVALUES.length-1] != currentModelScore){
+        GRAPHVALUES.push(currentModelScore)
+    }
+    console.log(GRAPHVALUES)
     return currentModelScore
 }
 function getCarSpawnFrequency(road){
     //RETURNS CAR SPAWN FREQUENCY COEFFICIENT BASED ON ROAD LENGTH FOR CAR SPAWNING FUNCTION IN ROAD CLASS
+}
+
+//ANYTHING NEURAL RELATED GOES HERE
+function toggleNetRunning(){
+    if(netRunning == true){
+        netRunning = false
+    }
+    else{
+        netRunning = true
+    }
+}
+function runNeuralOptimize(){
+    //main run function for neural network, ideally will be called once and then iteratively learn within itself, paralell to update function
+}
+
+//DYNAMIC CHART FUNCTIONS
+function resetGraph(){
+    GRAPHVALUES = []
+}
+function manageGraph(){
+    if(GRAPHVALUES.length > 20){
+        even = false;
+        newArray = []
+        for(let i = 0; i<GRAPHVALUES.length; i++){
+            if(even == true){
+                newArray.push(GRAPHVALUES[i])
+                even = false;
+            }
+            else{
+                even = true
+            }
+        }
+        GRAPHVALUES = newArray
+    }
+}
+function updateGraph(){
+    if(currentChart != null){
+        currentChart.destroy()
+    }
+    currentChart = new Chart("myChart", {
+        type: "line",
+        data: {
+          labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+          datasets: [{
+            backgroundColor: "rgba(0,0,0,1.0)",
+            borderColor: "rgba(0,0,0,0.1)",
+            data: GRAPHVALUES,
+            fill: false,
+            borderColor: 'rgb(255, 82, 82)',
+            label: "Model Performance Score"
+          }]
+        },
+        options: {
+            animation: {
+                duration: 0
+            }
+        }
+      });
 }
 
 //HELPER FUNCTIONS
@@ -169,10 +241,13 @@ function clearMap(){
     while(LIGHT_ARRAY.length > 0){
         LIGHT_ARRAY.pop()
     }
+    resetGraph()
 }
 function update(){
     c.clearRect(0, 0, canvas.width, canvas.height)
     manageLineDrawing()
+    manageGraph()
+    updateGraph()
     for(let i = 0; i<ROAD_ARRAY.length; i++){
         ROAD_ARRAY[i].draw()
     }
@@ -185,12 +260,15 @@ function update(){
     for(let i = 0; i<LIGHT_ARRAY.length; i++){
         LIGHT_ARRAY[i].animate()
     }
-    
     if(gameRunning == false && MOUSEDOWN == true){
         gameRunning = true
         console.log("helo")
         instructionDiv.style.display = "none";
     }
+    if(netRunning == true){
+        runNeuralOptimize()
+    }
+    
     //LOGS CURRENT MODEL SCORE
     getCurrentModelScore(50)
     requestAnimationFrame(update)
@@ -377,6 +455,7 @@ class Car{
 //MAIN RUN CODE
 
 update()
+
 
 
 

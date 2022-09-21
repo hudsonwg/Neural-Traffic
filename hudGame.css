@@ -89,6 +89,12 @@ canvas {
   left: 90%;
   transform: translate(-50%, -50%);
 }
+.wrapper5{
+  position: fixed;
+  top: 27%;
+  left: 90%;
+  transform: translate(-50%, -50%);
+}
 #speedText{
     position: fixed;
     top: 15%;
@@ -136,4 +142,12 @@ a:hover:after{
     50%{transform: translate(0, 10vh); opacity: 0.5;}
     100%{transform: translate(0, 0);opacity: 0.9;}
 }
-
+#myChart{
+  position: relative;
+  bottom: 220px;
+  left: 10px;
+  background-color: white;
+  border-color: lavender;
+  border-radius: 3px;
+  border-style: solid;
+}

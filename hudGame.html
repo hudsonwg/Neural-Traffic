@@ -2,6 +2,7 @@
 <html>
 <head>
 <link rel="stylesheet" href="hudGame.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 </head>
 
 <style>
@@ -9,6 +10,7 @@
         margin: 0;
     }
 </style>
+
 <canvas></canvas>
 <div class="instructions" id="instructions">
     CLICK AND DRAG TO BUILD SOME ROADS!
@@ -31,5 +33,11 @@
 <div class="wrapper4" onclick="randomizeLightTiming()">
     <a href="#"><span>RANDOMIZE NET</span></a>
 </div>
+<div class="wrapper5" onclick="toggleNetRunning()">
+    <a href="#"><span>OPTIMIZE ON/OFF</span></a>
+</div>
 <p id="speedText">1x</p>
+
+<canvas id="myChart" style="width:100%;max-width:20vw"></canvas>
+
 <script src="./hudGame.js"></script>
