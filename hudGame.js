@@ -16,6 +16,8 @@ chartExists = false
 
 //GRAPH VARIABLES
 GRAPHVALUES = []
+qChart = null
+
 //ARRAYS FOR SYSTEM
 ROAD_ARRAY = []
 LIGHT_ARRAY = []
@@ -40,7 +42,6 @@ currentCarScore = 0
 //FUNCTIONS UNDER CONSTRUCTION
 function randomizeLightTiming(){
     //ASSIGNS ALL LIGHTS IN LIGHT ARRAY RANDOM TIMING FUNCTION
-    console.log("RANDOM BAM")
     if(LIGHT_ARRAY.length > 0){
         for(let i = 0; i<LIGHT_ARRAY.length; i++){
             randomSeed = Math.random(100)
@@ -58,7 +59,7 @@ function findBestLightTimes(){
 function getCurrentModelScore(interval){
     
     //RETURNS AMOUNT OF CARS THAT CAN PASS THROUGH THE CURRENT SYSTEM IN A GIVEN TIME
-    currentModelScore = 1
+    currentModelScore = 0
     for(let j = 0; j<LIGHT_ARRAY.length; j++){
         LIGHT_ARRAY[j].determineRoads()
     }
@@ -72,19 +73,22 @@ function getCurrentModelScore(interval){
             else if(LIGHT_ARRAY[z].greenRoad == ROAD_ARRAY[i]){
                 totalStoppedInterval += (LIGHT_ARRAY[z].timeGreen*lightCycle)
             }
-            roadLength = getDistance(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY)
+            roadLength = Math.abs(getDistance(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY))
             timeTakenByCar = roadLength/universalCarVelocity+totalStoppedInterval
             currentModelScore += (interval/timeTakenByCar)
-            console.log("CURRENTMODELSCORE:")
-            console.log(currentModelScore)
+            //console.log("CURRENTMODELSCORE:")
+            //console.log(currentModelScore)
         }
     }
+    if(currentModelScore < 0){
+        currentModelScore = 0
+    }
     //CLAUSE THAT DIVIDES MODEL SCORE BY LENGTH TO MAKE METRIC MORE STANDARDIZED
-    //currentModelScore = currentModelScore/ROAD_ARRAY.length
+    currentModelScore = currentModelScore/ROAD_ARRAY.length
     if(GRAPHVALUES[GRAPHVALUES.length-1] != currentModelScore){
         GRAPHVALUES.push(currentModelScore)
     }
-    console.log(GRAPHVALUES)
+    //console.log(GRAPHVALUES)
     return currentModelScore
 }
 function getCarSpawnFrequency(road){
@@ -92,6 +96,13 @@ function getCarSpawnFrequency(road){
 }
 
 //ANYTHING NEURAL RELATED GOES HERE
+function getLightTimeArray(){
+    returnVal = []
+    for(let i = 0; i<LIGHT_ARRAY.length; i++){
+        returnVal.push(LIGHT_ARRAY[i].getLightTime())
+    }
+    return returnVal
+}
 function toggleNetRunning(){
     if(netRunning == true){
         netRunning = false
@@ -100,9 +111,135 @@ function toggleNetRunning(){
         netRunning = true
     }
 }
-function runNeuralOptimize(){
-    //main run function for neural network, ideally will be called once and then iteratively learn within itself, paralell to update function
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min) + min); // The maximum is exclusive and the minimum is inclusive
 }
+function getRandomLightChange(){
+    returnVal = 0
+    inter = getRandomInt(0, 4)
+    if(inter == 0){
+        returnVal=(-0.05)
+    }
+    else if(inter == 1){
+        returnVal=(0.05)
+    }
+    else if(inter == 2){
+        returnVal=(-0.15)
+    }
+    else if(inter == 3){
+        returnVal=(0.15)
+    }
+    return returnVal
+}
+
+class QTABLE{
+    constructor(initialStates, initialActions, initialQs){
+        this.states = initialStates
+        this.actions = initialActions
+        this.qVals = initialQs
+        this.epsilon = 1
+        this.episodes = 0
+        this.linearEpsilonReduction = 0.001
+    }
+    getDifferenceTable(){
+        //returns table with similarity values for all current states in q table with lightarray
+        let returnArray = []
+        for(let i = 0; i<this.states.length; i++){
+            let differenceScore = 0
+            let count = 0
+            for(let x = 0; x<this.states[i].length; x++){
+                differenceScore = differenceScore + Math.abs(getLightTimeArray()[x]-this.states[i][x])
+                count = count + 1
+            }
+            differenceScore = differenceScore/count
+            returnArray.push(differenceScore)
+        }
+        
+        return returnArray
+    }
+    runQOptimize(){
+        
+        if(Math.random()>this.epsilon){
+            //EXPLOIT
+            if(this.qVals != []){
+                //FIND SIMILAR STATES TO CURRENT STATE, WITH THOSE FIND HIGHEST Q VALUE
+                //MAX IS THE INDEX OF THE HIGHEST Q VALUE
+                var differenceTable = this.getDifferenceTable()
+                console.log(differenceTable)
+                console.log(getLightTimeArray())
+                let total = 0
+                let count = 0
+                let tableLowest = 10000
+                for(let i = 0; i<differenceTable.length; i++){
+                    total = total + differenceTable[i]
+                    count = count + 1
+                    if(differenceTable[i] < tableLowest){
+                        tableLowest = differenceTable[i]
+                    }
+                }
+                let tableAverage = total/count
+                let iTable = []
+                for(let i = 0; i<differenceTable.length; i++){
+                    if(differenceTable[i] < ((tableAverage+tableLowest)/2)){
+                        iTable.push(i)
+                    }
+                }
+                //NOW FIND HIGHEST Q VALUE IN I TABLE (WHICH CONTAINS ALL STATES ABOVE AVERAGE SIMILARITY)
+                let index = 0
+                let max = 0
+                for(let i = 0; i<iTable.length; i++){
+                    if(this.qVals[iTable[i]] > max){
+                        max = this.qVals[iTable[i]]
+                        index = iTable[i]
+                    }
+                }
+                
+                let actionToTake = this.actions[index]
+                
+                //TAKE THE ACTION AND ADJUST THE Q SCORE BASED ON RESULT
+                let currentScore = getCurrentModelScore(50)
+                LIGHT_ARRAY[actionToTake[0]].setTimeGreen(LIGHT_ARRAY[actionToTake[0]].getLightTime() + actionToTake[1])
+
+
+                console.log("timegreenset")
+                console.log(LIGHT_ARRAY[actionToTake[0]].getLightTime())
+
+
+                let qAdjust = (getCurrentModelScore(50) - currentScore)/2
+                //FIND A BETTER Q METRIC ADJUST ALGO THAN LINE ABOVE
+
+                this.qVals[index] += qAdjust
+                this.epsilon = this.epsilon - this.linearEpsilonReduction
+                this.episodes = this.episodes + 1
+            }
+            console.log("epsilon")
+            console.log(this.epsilon)
+            for(let i = 0; i<this.qVals.length; i++){
+                if(this.qVals[i] < 0){
+                    this.qVals[i] = 0
+                }
+            }
+        }
+        else{
+            //EXPLORE
+            let index1 = getRandomInt(0, LIGHT_ARRAY.length)
+            let change = getRandomLightChange()
+            this.actions.push([index1, change])
+            this.states.push(getLightTimeArray())
+            let currentScore = getCurrentModelScore(50)
+            LIGHT_ARRAY[index1].setTimeGreen(getLightTimeArray()[index1] + change)
+            this.qVals.push(getCurrentModelScore(50))
+            this.epsilon = this.epsilon - this.linearEpsilonReduction
+            this.episodes = this.episodes + 1
+        }
+    }
+}
+
+
+
+
 
 //DYNAMIC CHART FUNCTIONS
 function resetGraph(){
@@ -131,20 +268,38 @@ function updateGraph(){
     currentChart = new Chart("myChart", {
         type: "line",
         data: {
-          labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+          labels: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
           datasets: [{
             backgroundColor: "rgba(0,0,0,1.0)",
             borderColor: "rgba(0,0,0,0.1)",
             data: GRAPHVALUES,
             fill: false,
             borderColor: 'rgb(255, 82, 82)',
-            label: "Model Performance Score"
+            label: "Normalized Model Score (cars passed per time)",
+            pointBackgroundColor: 'rgb(150, 126, 127)',
+            pointBorderColor: 'rgb(150, 126, 127)',
           }]
         },
         options: {
+            //POTENTIALLY REMOVE THIS BIT LATER ON TO SHOW SCALES< MORE SPECIFIC DATA
+            //scales: {
+            //    xAxes: [{
+            //      display: false
+            //    }],
+            //    yAxes: [{
+            //      display: false
+            //    }],
+            //},
+
+
             animation: {
                 duration: 0
-            }
+            },
+            elements: {
+                point:{
+                    radius: 2
+                }
+            },
         }
       });
 }
@@ -222,9 +377,9 @@ function manageLineDrawing(){
         if(ROAD_ARRAY.length > 0){
             for(let i = 0; i<ROAD_ARRAY.length; i++){
                 if(intersects(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY) == true){
-                    console.log("intersection detected")
-                    console.log(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['x'])
-                    console.log(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['y'])
+                    //console.log("intersection detected")
+                    //console.log(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['x'])
+                    //console.log(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['y'])
                     LIGHT_ARRAY.push(new Light(line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['x'], line_intersect(ROAD_ARRAY[i].startX, ROAD_ARRAY[i].startY, ROAD_ARRAY[i].endX, ROAD_ARRAY[i].endY, initialMouseX, initialMouseY, mouseX, mouseY)['y'], 'red', 15, 0.5))
                 }
             }
@@ -242,6 +397,7 @@ function clearMap(){
         LIGHT_ARRAY.pop()
     }
     resetGraph()
+    window.location.reload()
 }
 function update(){
     c.clearRect(0, 0, canvas.width, canvas.height)
@@ -253,7 +409,6 @@ function update(){
     }
     if(carsMoving == true){
         for(let i = 0; i<ROAD_ARRAY.length; i++){
-            console.log("ruinning")
             ROAD_ARRAY[i].updateCars()
         }
     }
@@ -262,11 +417,21 @@ function update(){
     }
     if(gameRunning == false && MOUSEDOWN == true){
         gameRunning = true
-        console.log("helo")
         instructionDiv.style.display = "none";
     }
-    if(netRunning == true){
-        runNeuralOptimize()
+    if(netRunning == true && qChart == null){
+        qChart = new QTABLE([], [], [])
+        console.log("initializing q table")
+    }
+    if(netRunning == true && qChart != null){
+        qChart.runQOptimize()
+        qChart.runQOptimize()
+        qChart.runQOptimize()
+        qChart.runQOptimize()
+        qChart.runQOptimize()
+        
+        
+        console.log("running q vals")
     }
     
     //LOGS CURRENT MODEL SCORE
@@ -351,6 +516,9 @@ class Light{
         this.timeRed = STOPLIGHTCYCLETIME - this.timeGreen
         this.tick = 0
     }
+    getLightTime(){
+        return this.timeGreen
+    }
     determineRoads(){
         for(let i = 0; i<ROAD_ARRAY.length; i++){
             //DETERMINE WHICH TWO ROADS THIS LIGHT LIES ON AND PASS THEM RANDOMLY TO THE GREENROAD AND REDROAD CONTAINERS
@@ -361,9 +529,9 @@ class Light{
                 else if(this.redRoad == null){
                     this.redRoad = ROAD_ARRAY[i]
                 }
-                else{
-                    console.log("BOTH ROAD SLOTS FULL : REVISE ABSOLUTE VALUE DOMAIN IN CONDITION")
-                }
+                //else{
+                //  console.log("BOTH ROAD SLOTS FULL : REVISE ABSOLUTE VALUE DOMAIN IN CONDITION")
+                //}
             }
         }
     }
@@ -405,6 +573,7 @@ class Car{
         this.width = width
         this.road = road
     }
+    
     draw(){
         c.beginPath();
         c.moveTo(this.x, this.y);
@@ -442,10 +611,10 @@ class Car{
                 
                 //THIS BIT NEEDS REVISION
                 
-                console.log(this.slope[1])
-                console.log(this.slope[0])
-                console.log(normalizedY)
-                console.log(normalizedX)
+                //console.log(this.slope[1])
+                //console.log(this.slope[0])
+                //console.log(normalizedY)
+                //console.log(normalizedX)
             }
         }
         this.draw()
@@ -455,9 +624,6 @@ class Car{
 //MAIN RUN CODE
 
 update()
-
-
-
 
 
 
