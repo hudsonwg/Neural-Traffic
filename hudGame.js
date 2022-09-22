@@ -10,13 +10,15 @@ ROADPLACEMODE = true
 MOUSEDOWN = false
 building = false
 var gameRunning = false
-carsMoving = false
+carsMoving = true
 netRunning = false
 chartExists = false
 
 //GRAPH VARIABLES
 GRAPHVALUES = []
 qChart = null
+savedGraph = []
+chartFrozen = false
 
 //ARRAYS FOR SYSTEM
 ROAD_ARRAY = []
@@ -32,7 +34,7 @@ mouseY = 0
 
 //CONSTANT INITS
 var instructionDiv = document.getElementsByClassName("instructions")[0];
-universalSpeedMultiplier = 1
+universalSpeedMultiplier = 5
 universalSpeedText = "1x"
 lightCycle = 300
 universalCarVelocity = 20 //METERS PER SECOND OR WHATEVER
@@ -120,16 +122,16 @@ function getRandomLightChange(){
     returnVal = 0
     inter = getRandomInt(0, 4)
     if(inter == 0){
-        returnVal=(-0.05)
+        returnVal=(-0.2)
     }
     else if(inter == 1){
-        returnVal=(0.05)
+        returnVal=(0.2)
     }
     else if(inter == 2){
-        returnVal=(-0.15)
+        returnVal=(-0.4)
     }
     else if(inter == 3){
-        returnVal=(0.15)
+        returnVal=(0.4)
     }
     return returnVal
 }
@@ -164,11 +166,13 @@ class QTABLE{
         if(Math.random()>this.epsilon){
             //EXPLOIT
             if(this.qVals != []){
-                //FIND SIMILAR STATES TO CURRENT STATE, WITH THOSE FIND HIGHEST Q VALUE
+                let testSeed = Math.random()
+                
+                    //FIND SIMILAR STATES TO CURRENT STATE, WITH THOSE FIND HIGHEST Q VALUE
                 //MAX IS THE INDEX OF THE HIGHEST Q VALUE
                 var differenceTable = this.getDifferenceTable()
-                console.log(differenceTable)
-                console.log(getLightTimeArray())
+                //console.log(differenceTable)
+                //console.log(getLightTimeArray())
                 let total = 0
                 let count = 0
                 let tableLowest = 10000
@@ -203,16 +207,20 @@ class QTABLE{
                 LIGHT_ARRAY[actionToTake[0]].setTimeGreen(LIGHT_ARRAY[actionToTake[0]].getLightTime() + actionToTake[1])
 
 
-                console.log("timegreenset")
-                console.log(LIGHT_ARRAY[actionToTake[0]].getLightTime())
+                //console.log("timegreenset")
+                //console.log(LIGHT_ARRAY[actionToTake[0]].getLightTime())
 
 
                 let qAdjust = (getCurrentModelScore(50) - currentScore)/2
                 //FIND A BETTER Q METRIC ADJUST ALGO THAN LINE ABOVE
 
                 this.qVals[index] += qAdjust
-                this.epsilon = this.epsilon - this.linearEpsilonReduction
+                if(this.epsilon > 0){
+                    this.epsilon = this.epsilon - this.linearEpsilonReduction
+                }
+                
                 this.episodes = this.episodes + 1
+                
             }
             console.log("epsilon")
             console.log(this.epsilon)
@@ -231,9 +239,14 @@ class QTABLE{
             let currentScore = getCurrentModelScore(50)
             LIGHT_ARRAY[index1].setTimeGreen(getLightTimeArray()[index1] + change)
             this.qVals.push(getCurrentModelScore(50))
-            this.epsilon = this.epsilon - this.linearEpsilonReduction
+            if(this.epsilon > 0){
+                this.epsilon = this.epsilon - this.linearEpsilonReduction
+            }
+            
             this.episodes = this.episodes + 1
         }
+        console.log("QTABLESIZE")
+        console.log(this.qVals.length)
     }
 }
 
@@ -245,21 +258,21 @@ class QTABLE{
 function resetGraph(){
     GRAPHVALUES = []
 }
-function manageGraph(){
-    if(GRAPHVALUES.length > 20){
-        even = false;
-        newArray = []
-        for(let i = 0; i<GRAPHVALUES.length; i++){
-            if(even == true){
-                newArray.push(GRAPHVALUES[i])
-                even = false;
+function manageGraph(){  
+        if(GRAPHVALUES.length > 20){
+            even = false;
+            newArray = []
+            for(let i = 0; i<GRAPHVALUES.length; i++){
+                if(even == true){
+                    newArray.push(GRAPHVALUES[i])
+                    even = false;
+                }
+                else{
+                    even = true
+                }
             }
-            else{
-                even = true
-            }
+            GRAPHVALUES = newArray
         }
-        GRAPHVALUES = newArray
-    }
 }
 function updateGraph(){
     if(currentChart != null){
@@ -275,7 +288,7 @@ function updateGraph(){
             data: GRAPHVALUES,
             fill: false,
             borderColor: 'rgb(255, 82, 82)',
-            label: "Normalized Model Score (cars passed per time)",
+            label: "QTable Performance",
             pointBackgroundColor: 'rgb(150, 126, 127)',
             pointBorderColor: 'rgb(150, 126, 127)',
           }]
@@ -290,8 +303,20 @@ function updateGraph(){
             //      display: false
             //    }],
             //},
-
-
+            
+            //scales: {
+            //    yAxes: [{
+            //        ticks: {
+            //            //backdropColor : "rgba(255,255,255,0)",
+            //            userCallback: function(value, index, values) {
+            //              return "";
+            //            }
+            //          }
+            //     }]
+            //   },
+            
+            
+           
             animation: {
                 duration: 0
             },
@@ -421,21 +446,18 @@ function update(){
     }
     if(netRunning == true && qChart == null){
         qChart = new QTABLE([], [], [])
-        console.log("initializing q table")
     }
     if(netRunning == true && qChart != null){
-        qChart.runQOptimize()
-        qChart.runQOptimize()
-        qChart.runQOptimize()
-        qChart.runQOptimize()
-        qChart.runQOptimize()
-        
-        
-        console.log("running q vals")
+        for(let i = 0; i<10; i++){
+            qChart.runQOptimize()
+        }
     }
     
     //LOGS CURRENT MODEL SCORE
-    getCurrentModelScore(50)
+    if(netRunning){
+        getCurrentModelScore(50)
+    }
+    
     requestAnimationFrame(update)
 }
 
@@ -599,7 +621,6 @@ class Car{
             if(Math.abs(this.x-this.road.endX) < 6 && Math.abs(this.y-this.road.endY)<6){
                 this.x = this.origin[0]
                 this.y = this.origin[1]
-                console.log("origin")
             }
             else{
                 let normalizedX = this.slope[0]/Math.sqrt((this.slope[0]*this.slope[0])+(this.slope[1]*this.slope[1]))*3
