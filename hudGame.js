@@ -39,6 +39,7 @@ universalSpeedText = "1x"
 lightCycle = 300
 universalCarVelocity = 20 //METERS PER SECOND OR WHATEVER
 currentCarScore = 0
+universalLinearEpsilonReduction = 0.001
 
 
 //FUNCTIONS UNDER CONSTRUCTION
@@ -98,6 +99,32 @@ function getCarSpawnFrequency(road){
 }
 
 //ANYTHING NEURAL RELATED GOES HERE
+function adjustEpsilon(predictedQ, actualQ){
+    let returnVal = 0
+    let bigger = 0
+    let smaller = 0
+    let sign = 1
+    if(predictedQ > actualQ){
+        bigger = predictedQ
+        smaller = actualQ
+        sign = -1
+    }
+    else if(actualQ>predictedQ){
+        bigger = actualQ
+        smaller = predictedQ
+    }
+    if((smaller/bigger)<(0.85)){
+        returnVal += 5 * universalLinearEpsilonReduction
+    }
+    if((smaller/bigger)<(0.55)){
+        returnVal += 10 * universalLinearEpsilonReduction
+    }
+    if((smaller/bigger)<(0.25)){
+        returnVal += 10* universalLinearEpsilonReduction
+    }
+    return returnVal
+    //return number for epsilon adjustment
+}
 function getLightTimeArray(){
     returnVal = []
     for(let i = 0; i<LIGHT_ARRAY.length; i++){
@@ -143,7 +170,7 @@ class QTABLE{
         this.qVals = initialQs
         this.epsilon = 1
         this.episodes = 0
-        this.linearEpsilonReduction = 0.001
+        this.linearEpsilonReduction = universalLinearEpsilonReduction
     }
     getDifferenceTable(){
         //returns table with similarity values for all current states in q table with lightarray
@@ -216,9 +243,11 @@ class QTABLE{
 
                 this.qVals[index] += qAdjust
                 if(this.epsilon > 0){
-                    this.epsilon = this.epsilon - this.linearEpsilonReduction
+                    this.epsilon = this.epsilon + (adjustEpsilon(currentScore, getCurrentModelScore(50)))
                 }
-                
+                else{
+                    this.epsilon = 0
+                }
                 this.episodes = this.episodes + 1
                 
             }
@@ -240,7 +269,10 @@ class QTABLE{
             LIGHT_ARRAY[index1].setTimeGreen(getLightTimeArray()[index1] + change)
             this.qVals.push(getCurrentModelScore(50))
             if(this.epsilon > 0){
-                this.epsilon = this.epsilon - this.linearEpsilonReduction
+                this.epsilon = this.epsilon -this.linearEpsilonReduction
+            }
+            else{
+                this.epsilon = 0
             }
             
             this.episodes = this.episodes + 1
@@ -284,10 +316,10 @@ function updateGraph(){
           labels: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
           datasets: [{
             backgroundColor: "rgba(0,0,0,1.0)",
-            borderColor: "rgba(0,0,0,0.1)",
+            borderColor: "rgba(15, 15, 15)",
             data: GRAPHVALUES,
             fill: false,
-            borderColor: 'rgb(255, 82, 82)',
+            borderColor: 'rgb(15, 15, 15, 0.3)',
             label: "QTable Performance",
             pointBackgroundColor: 'rgb(150, 126, 127)',
             pointBorderColor: 'rgb(150, 126, 127)',
